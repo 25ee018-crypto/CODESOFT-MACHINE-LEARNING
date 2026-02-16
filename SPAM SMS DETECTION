@@ -1,0 +1,56 @@
+import pandas as pd
+import nltk
+import string
+
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import LinearSVC
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Download stopwords
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+
+# 1. Load Dataset
+
+data = pd.read_csv("spam.csv", encoding='latin-1')
+data = data[['label', 'message']]
+data.columns = ['label', 'message']
+
+print(data.head())
+
+# 2. Encode Labels
+# ham -> 0, spam -> 1
+
+data['label'] = data['label'].map({'ham': 0, 'spam': 1})
+
+# 3. Text Preprocessing
+
+stop_words = stopwords.words('english')
+
+def clean_text(text):
+    text = text.lower()
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    words = text.split()
+    words = [word for word in words if word not in stop_words]
+    return " ".join(words)
+
+data['message'] = data['message'].apply(clean_text)
+
+
+# 4. Feature Extraction (TF-IDF)
+
+X = data['message']
+y = data['label']
+
+vectorizer = TfidfVectorizer(max_features=5000)
+X_tfidf = vectorizer.fit_transform(X)
+
+# 5. Train-Test Split
+
+X_train, X_test, y_train, y_test = train
