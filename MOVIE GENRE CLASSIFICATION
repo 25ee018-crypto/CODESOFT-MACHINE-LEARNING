@@ -1,0 +1,83 @@
+import pandas as pd
+import nltk
+import string
+
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import LinearSVC
+from sklearn.metrics import accuracy_score, classification_report
+
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+
+# 1. Load Dataset
+
+data = pd.read_csv("movies.csv")
+
+# 2. Text Preprocessing
+
+stop_words = stopwords.words('english')
+
+def clean_text(text):
+    text = text.lower()
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    words = text.split()
+    words = [word for word in words if word not in stop_words]
+    return " ".join(words)
+
+data['plot'] = data['plot'].apply(clean_text)
+
+# 3. Feature Extraction (TF-IDF)
+
+X = data['plot']
+y = data['genre']
+
+vectorizer = TfidfVectorizer(max_features=5000)
+X_tfidf = vectorizer.fit_transform(X)
+
+# 4. Train-Test Split
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_tfidf, y, test_size=0.2, random_state=42
+)
+
+# 5. Model 1: Naive Bayes
+
+nb_model = MultinomialNB()
+nb_model.fit(X_train, y_train)
+nb_pred = nb_model.predict(X_test)
+
+print("Naive Bayes Accuracy:", accuracy_score(y_test, nb_pred))
+print(classification_report(y_test, nb_pred))
+
+# 6. Model 2: Logistic Regression
+
+lr_model = LogisticRegression(max_iter=1000)
+lr_model.fit(X_train, y_train)
+lr_pred = lr_model.predict(X_test)
+
+print("Logistic Regression Accuracy:", accuracy_score(y_test, lr_pred))
+print(classification_report(y_test, lr_pred))
+
+# 7. Model 3: Support Vector Machine
+
+svm_model = LinearSVC()
+svm_model.fit(X_train, y_train)
+svm_pred = svm_model.predict(X_test)
+
+print("SVM Accuracy:", accuracy_score(y_test, svm_pred))
+print(classification_report(y_test, svm_pred))
+
+# 8. Predict New Movie Genre
+
+def predict_genre(plot_summary):
+    plot_summary = clean_text(plot_summary)
+    plot_vector = vectorizer.transform([plot_summary])
+    prediction = svm_model.predict(plot_vector)
+    return prediction[0]
+
+# Example
+new_plot = "A group of friends travel through space to save the universe"
+print("Predicted Genre:", predict_genre(new_plot))
