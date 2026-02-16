@@ -1,0 +1,96 @@
+import pandas as pd
+import numpy as np
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 1. Load Dataset
+
+data = pd.read_csv("customer_churn.csv")
+
+print(data.head())
+print(data.info())
+
+# 2. Handle Missing Values
+
+data.replace(" ", np.nan, inplace=True)
+data.dropna(inplace=True)
+
+# 3. Encode Categorical Features
+
+label_encoder = LabelEncoder()
+
+for column in data.columns:
+    if data[column].dtype == 'object':
+        data[column] = label_encoder.fit_transform(data[column])
+
+# 4. Feature & Target Split
+
+X = data.drop("Churn", axis=1)
+y = data["Churn"]
+
+# 5. Feature Scaling
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 6. Train-Test Split
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# 7. Logistic Regression Model
+
+lr_model = LogisticRegression(max_iter=1000)
+lr_model.fit(X_train, y_train)
+lr_pred = lr_model.predict(X_test)
+
+print("\nLogistic Regression Accuracy:", accuracy_score(y_test, lr_pred))
+print(classification_report(y_test, lr_pred))
+
+# 8. Random Forest Model
+
+rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_model.fit(X_train, y_train)
+rf_pred = rf_model.predict(X_test)
+
+print("\nRandom Forest Accuracy:", accuracy_score(y_test, rf_pred))
+print(classification_report(y_test, rf_pred))
+
+# 9. Gradient Boosting Model
+
+gb_model = GradientBoostingClassifier()
+gb_model.fit(X_train, y_train)
+gb_pred = gb_model.predict(X_test)
+
+print("\nGradient Boosting Accuracy:", accuracy_score(y_test, gb_pred))
+print(classification_report(y_test, gb_pred))
+
+# 10. Confusion Matrix (Best Model)
+
+cm = confusion_matrix(y_test, gb_pred)
+
+plt.figure(figsize=(5,4))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Greens')
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.title("Confusion Matrix - Gradient Boosting")
+plt.show()
+
+# 11. Predict New Customer Churn
+
+def predict_churn(customer_data):
+    customer_scaled = scaler.transform([customer_data])
+    prediction = gb_model.predict(customer_scaled)
+    return "Churn" if prediction[0] == 1 else "Not Churn"
+
+# Example prediction
+sample_customer = X.iloc[0].values
+print("Customer Status:", predict_churn(sample_customer))
